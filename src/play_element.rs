@@ -5,7 +5,6 @@ use gpui::{
 use log::info;
 use std::path::Path;
 use std::sync::{Arc, mpsc};
-use std::thread;
 
 use crate::PlayerCommand;
 use crate::audio_manager::AudioManager;

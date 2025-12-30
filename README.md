@@ -4,6 +4,7 @@ A simple music player application built with [GPUI](https://crates.io/crates/gpu
 
 ![Rust](https://img.shields.io/badge/Rust-2024_Edition-orange)
 ![GPUI](https://img.shields.io/badge/GPUI-0.2.2-blue)
+![rodio](https://img.shields.io/badge/rodio-0.21.1-green)
 
 ## Features
 
@@ -13,13 +14,15 @@ A simple music player application built with [GPUI](https://crates.io/crates/gpu
 - ⏪ **Seek Backward** - Skip backward 10 seconds
 - 📋 **Song List** - Automatically scans and displays MP3 files in the current directory
 - 🎨 **Modern UI** - Clean, GPU-accelerated interface built with GPUI
+- 🔄 **Click to Play** - Click any song in the list to immediately start playing it
+- 🧵 **Non-blocking Audio** - Audio runs on a dedicated background thread for smooth UI
 
 ## Screenshots
 
 The application features a centered layout with:
 - Application title at the top
 - Song list in the middle (with header showing Song name, Song writer, Singer)
-- Control panel at the bottom with Previous, Play/Pause, and Next buttons
+- Control panel at the bottom with Seek Backward, Play/Pause, and Seek Forward buttons
 
 ## Prerequisites
 
@@ -59,8 +62,9 @@ The application features a centered layout with:
 1. Place MP3 files in the same directory as the executable (or the directory where you run the app)
 2. Launch the application
 3. The song list will automatically populate with detected MP3 files
-4. Click on the play button to start playback
-5. Use the left/right arrow buttons to seek backward/forward by 10 seconds
+4. Click on any song in the list to start playback
+5. Use the play/pause button to toggle playback
+6. Use the left/right arrow buttons to seek backward/forward by 10 seconds
 
 ### Keyboard Shortcuts
 
@@ -92,13 +96,15 @@ music-player-gpui/
 ### Main Application (`main.rs`)
 The main module sets up the GPUI application window (800x800 pixels) and composes the UI with:
 - A title header
-- A `ListView` component for displaying songs
-- A control panel with seek and play/pause buttons
+- A `ListView` component for displaying songs (using `uniform_list` for efficient rendering)
+- A control panel with seek backward, play/pause, and seek forward buttons
+- Global communication channel for syncing player state between components
 
 ### Audio Manager (`audio_manager.rs`)
 Handles audio playback on a dedicated background thread to prevent UI blocking. Features:
-- **Command-based Architecture**: Uses channels (`mpsc`) to send commands (Play, Pause, Stop, Seek) to the audio thread
+- **Command-based Architecture**: Uses channels (`mpsc`) to send commands (Load, Play, Pause, Stop, SeekTo, SeekForward, SeekBackward, Detach, Shutdown) to the audio thread
 - **Position Tracking**: Maintains accurate playback position for seeking
+- **Backward Seek Support**: Reloads and seeks when seeking backward (required by most audio decoders)
 - **Non-blocking Operations**: All public methods return immediately
 
 Supported commands:
@@ -110,10 +116,16 @@ Supported commands:
 - `Shutdown` - Clean thread shutdown
 
 ### Play Element (`play_element.rs`)
-A GPUI component that renders the play/pause button and manages the audio state. Toggles between play and pause icons based on the current playback state.
+A GPUI component that renders the play/pause button and manages the audio state. Features:
+- Toggles between play and pause icons based on the current playback state
+- Receives player state updates via channel communication
+- Provides seek forward/backward functionality (10 second steps)
 
 ### Music List View (`music_list_view.rs`)
-Scans the current directory for MP3 files and displays them in a virtualized list using GPUI's `uniform_list` for efficient rendering of large song collections.
+Scans the current directory for MP3 files and displays them in a virtualized list using GPUI's `uniform_list` for efficient rendering of large song collections. Features:
+- Click any song to load and play it immediately
+- Syncs playback state with the play button via channel communication
+- Shows a "No songs found" message when the directory is empty
 
 ## Development
 
@@ -131,8 +143,7 @@ cargo doc --open
 
 - Currently only supports MP3 format
 - Song metadata (artist, album) is not yet parsed from files
-- The default song path is hardcoded in `play_element.rs`
-- Song selection from the list is not yet connected to playback
+- Scans only the current working directory for MP3 files
 
 ## Contributing
 
