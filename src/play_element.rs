@@ -1,71 +1,70 @@
 use gpui::{
-    ClickEvent, Context, ImageSource, InteractiveElement, Interactivity, IntoElement,
-    MouseDownEvent, MouseMoveEvent, MouseUpEvent, ParentElement, Render, RenderOnce, Resource,
-    StatefulInteractiveElement, Styled, Window, div, img, rgb,
+    ClickEvent, Context, ImageSource, InteractiveElement, ParentElement, Render, Resource,
+    StatefulInteractiveElement, Styled, Window, div, img,
 };
 use log::info;
 use std::path::Path;
 use std::sync::Arc;
 
-#[derive(Clone, Copy)]
-pub(crate) struct PlayActionState {
-    pub(crate) is_playing: bool,
-}
+use crate::audio_manager::AudioManager;
 
-#[derive(Clone, Copy)]
+const FILE_PATH: &str = "/Users/marvelhoax/code/music-player-gpui/song.mp3";
+
 pub struct PlayElement {
-    pub(crate) state: Option<PlayActionState>,
+    pub(crate) is_playing: bool,
+    btn: ImageSource,
+    pub(crate) audio_manager: Option<AudioManager>,
 }
 impl PlayElement {
     pub fn new() -> Self {
         Self {
-            state: Some(PlayActionState { is_playing: false }),
+            is_playing: false,
+            btn: ImageSource::Resource(Resource::Path(Arc::from(Path::new(
+                "assets/play-button.png",
+            )))),
+            audio_manager: None,
         }
     }
-    fn on_mouse_down(
-        &mut self,
-        event: &MouseDownEvent,
-        _window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        info!("Mouse down at position: {:?}", event.position);
-        if self.state.is_some() {
-            self.state.as_mut().unwrap().is_playing = true;
+
+    fn on_click(&mut self, _: &ClickEvent, _: &mut Window, _cx: &mut Context<Self>) {
+        self.is_playing = !self.is_playing;
+
+        if self.is_playing {
+            self.btn = ImageSource::Resource(Resource::Path(Arc::from(Path::new(
+                "assets/pause-button.png",
+            ))));
+
+            // Create audio manager if it doesn't exist, then play
+            if self.audio_manager.is_none() {
+                self.audio_manager = Some(AudioManager::new(FILE_PATH));
+            }
+            if let Some(ref audio) = self.audio_manager {
+                audio.play();
+            }
         } else {
-            self.state = Some(PlayActionState { is_playing: false });
+            self.btn = ImageSource::Resource(Resource::Path(Arc::from(Path::new(
+                "assets/play-button.png",
+            ))));
+
+            // Pause the audio
+            if let Some(ref audio) = self.audio_manager {
+                audio.pause();
+            }
         }
-        cx.notify();
     }
 
-    fn on_mouse_up(&mut self, event: &MouseUpEvent, _window: &mut Window, cx: &mut Context<Self>) {
-        info!("Mouse up at position: {:?}", event.position);
-        cx.notify();
+    /// Seek forward by 10 seconds
+    pub fn seek_forward(&self) {
+        if let Some(ref audio) = self.audio_manager {
+            audio.seek_forward();
+        }
     }
 
-    fn on_mouse_move(
-        &mut self,
-        event: &MouseMoveEvent,
-        _window: &mut Window,
-        cx: &mut Context<Self>,
-    ) {
-        info!("Mouse moving at position: {:?}", event.position);
-        cx.notify();
-    }
-
-    fn debug_mouse_event(
-        &mut self,
-        event: &MouseDownEvent,
-        window: &mut Window,
-        app: &mut Context<Self>,
-    ) {
-        info!("debug mouse event");
-        app.notify();
-    }
-
-    fn on_click(&mut self, event: &ClickEvent, window: &mut Window, app: &mut Context<Self>) {
-        info!("on click event...");
-        window.refresh();
-        app.notify();
+    /// Seek backward by 10 seconds
+    pub fn seek_backward(&self) {
+        if let Some(ref audio) = self.audio_manager {
+            audio.seek_backward();
+        }
     }
 }
 
@@ -75,20 +74,11 @@ impl Render for PlayElement {
         _window: &mut gpui::Window,
         cx: &mut gpui::Context<Self>,
     ) -> impl gpui::IntoElement {
-        info!("Rendering PlayElement");
-        let play_button_img = ImageSource::Resource(Resource::Path(Arc::from(Path::new(
-            "assets/play-button.png",
-        ))));
-
+        info!("debug value {:?}", self.is_playing);
         div()
-            .debug()
             .id("play-button")
             .size_16()
             .on_click(cx.listener(Self::on_click))
-            .on_mouse_down(gpui::MouseButton::Left, cx.listener(Self::on_mouse_down))
-            .on_mouse_up(gpui::MouseButton::Left, cx.listener(Self::on_mouse_up))
-            .on_mouse_move(cx.listener(Self::on_mouse_move))
-            .on_any_mouse_down(cx.listener(Self::debug_mouse_event))
-            .child(img(play_button_img).size_full())
+            .child(img(self.btn.clone()).size_full())
     }
 }
