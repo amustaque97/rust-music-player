@@ -1,4 +1,4 @@
-use std::fs::read_dir;
+use std::{fs::read_dir, sync::Arc};
 
 use gpui::{
     InteractiveElement, ParentElement, Render, StatefulInteractiveElement, Styled, div,
@@ -6,14 +6,20 @@ use gpui::{
 };
 use log::info;
 
+use crate::audio_manager::AudioManager;
+
+type SharedAudioManager = Arc<AudioManager>;
+
 pub(crate) struct ListView {
     songs_list: Vec<String>,
+    pub(crate) audio_manager: SharedAudioManager,
 }
 
 impl ListView {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(audio_manager: SharedAudioManager) -> Self {
         Self {
             songs_list: Vec::new(),
+            audio_manager,
         }
     }
 

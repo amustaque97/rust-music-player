@@ -3,14 +3,14 @@ mod audio_manager;
 mod music_list_view;
 mod play_element;
 use gpui::{
-    AppContext, Application, Bounds, ClickEvent, Entity, ImageSource, InteractiveElement,
+    AppContext, Application, Bounds, ClickEvent, Element, Entity, ImageSource, InteractiveElement,
     KeyBinding, ParentElement, Render, Resource, StatefulInteractiveElement, Styled, Window,
     WindowBounds, WindowOptions, actions, div, img, px, rgb, size,
 };
 use log::info;
 use std::sync::Arc;
 
-use crate::music_list_view::ListView;
+use crate::{audio_manager::AudioManager, music_list_view::ListView};
 use play_element::PlayElement;
 
 actions!(music_player, [Quit]);
@@ -101,8 +101,9 @@ fn main() {
     info!("Music player starting...");
     let application = Application::new();
 
-    let element = PlayElement::new();
-    let mut list_view = ListView::new();
+    let audio_manager = Arc::new(AudioManager::new());
+    let element = PlayElement::new(Arc::clone(&audio_manager));
+    let mut list_view = ListView::new(Arc::clone(&audio_manager));
     list_view.load_songs();
 
     application.run(move |app| {

@@ -8,21 +8,21 @@ use std::sync::Arc;
 
 use crate::audio_manager::AudioManager;
 
-const FILE_PATH: &str = "/Users/marvelhoax/code/music-player-gpui/song.mp3";
+type SharedAudioManager = Arc<AudioManager>;
 
 pub struct PlayElement {
     pub(crate) is_playing: bool,
     btn: ImageSource,
-    pub(crate) audio_manager: Option<AudioManager>,
+    pub(crate) audio_manager: SharedAudioManager,
 }
 impl PlayElement {
-    pub fn new() -> Self {
+    pub fn new(audio_manager: SharedAudioManager) -> Self {
         Self {
             is_playing: false,
             btn: ImageSource::Resource(Resource::Path(Arc::from(Path::new(
                 "assets/play-button.png",
             )))),
-            audio_manager: None,
+            audio_manager,
         }
     }
 
@@ -34,37 +34,24 @@ impl PlayElement {
                 "assets/pause-button.png",
             ))));
 
-            // Create audio manager if it doesn't exist, then play
-            if self.audio_manager.is_none() {
-                self.audio_manager = Some(AudioManager::new(FILE_PATH));
-            }
-            if let Some(ref audio) = self.audio_manager {
-                audio.play();
-            }
+            self.audio_manager.play();
         } else {
             self.btn = ImageSource::Resource(Resource::Path(Arc::from(Path::new(
                 "assets/play-button.png",
             ))));
 
-            // Pause the audio
-            if let Some(ref audio) = self.audio_manager {
-                audio.pause();
-            }
+            self.audio_manager.pause();
         }
     }
 
     /// Seek forward by 10 seconds
     pub fn seek_forward(&self) {
-        if let Some(ref audio) = self.audio_manager {
-            audio.seek_forward();
-        }
+        self.audio_manager.seek_forward();
     }
 
     /// Seek backward by 10 seconds
     pub fn seek_backward(&self) {
-        if let Some(ref audio) = self.audio_manager {
-            audio.seek_backward();
-        }
+        self.audio_manager.seek_backward();
     }
 }
 

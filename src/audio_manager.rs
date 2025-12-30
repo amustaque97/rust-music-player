@@ -32,10 +32,8 @@ pub(crate) struct AudioManager {
 
 impl AudioManager {
     /// Creates a new AudioManager with a background thread for audio playback.
-    /// The file at `file_path` is loaded and ready to play.
-    pub fn new(file_path: &str) -> Self {
+    pub fn new() -> Self {
         let (command_tx, command_rx) = mpsc::channel::<AudioCommand>();
-        let file_path_owned = file_path.to_string();
 
         let thread_handle = thread::spawn(move || {
             // Audio stream and sink live entirely on this background thread
@@ -45,7 +43,7 @@ impl AudioManager {
             // Position tracking state - all local to this thread
             let mut accumulated_ms: u64 = 0; // Time accumulated from previous play sessions
             let mut play_start: Option<Instant> = None; // When current play session started
-            let mut current_file_path = file_path_owned.clone();
+            let mut current_file_path = String::new();
 
             // Helper closure to get current position
             let get_current_position_ms = |accumulated: u64, start: &Option<Instant>| -> u64 {
@@ -75,15 +73,6 @@ impl AudioManager {
                 }
                 false
             };
-
-            // Load initial file
-            if let Ok(file) = File::open(&file_path_owned) {
-                let reader = BufReader::new(file);
-                if let Ok(source) = Decoder::new(reader) {
-                    sink.append(source);
-                    info!("Audio loaded: {}", file_path_owned);
-                }
-            }
 
             // Process commands from the main thread
             loop {
@@ -187,6 +176,12 @@ impl AudioManager {
             command_tx,
             _thread_handle: Some(thread_handle),
         }
+    }
+
+    /// load a new song
+    /// this method accepts String class file path
+    pub(crate) fn load(&self, path: String) {
+        let _ = self.command_tx.send(AudioCommand::Load(path));
     }
 
     /// Start or resume playback (non-blocking)
