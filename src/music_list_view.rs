@@ -1,4 +1,4 @@
-use std::{fs::read_dir, sync::Arc};
+use std::{fs::read_dir, str::FromStr, sync::Arc};
 
 use gpui::{
     InteractiveElement, ParentElement, Render, StatefulInteractiveElement, Styled, div,
@@ -40,6 +40,9 @@ impl Render for ListView {
         _window: &mut gpui::Window,
         cx: &mut gpui::Context<Self>,
     ) -> impl gpui::IntoElement {
+        let songs_list = self.songs_list.clone();
+        let audio_manager = self.audio_manager.clone(); // Option<Arc<_>>
+
         div()
             .bg(rgb(0xC8E5EE))
             .gap_3()
@@ -47,9 +50,9 @@ impl Render for ListView {
             .flex()
             .flex_col()
             .when_else(
-                !self.songs_list.is_empty(),
-                |_div| {
-                    let songs_list = self.songs_list.clone();
+                !songs_list.is_empty(),
+                move |_div| {
+                    let audio_manager = audio_manager.clone(); // clone BEFORE move
 
                     _div.items_start()
                         .flex()
@@ -68,16 +71,18 @@ impl Render for ListView {
                                 .child("Singer"),
                         )
                         .child(
-                            uniform_list(
-                                "songs-list",
-                                songs_list.len(),
+                            uniform_list("songs-list", songs_list.len(), {
+                                let songs_list = songs_list.clone();
                                 cx.processor(move |_this, range, _window, _cx| {
+                                    let audio_manager = audio_manager.clone(); // clone AGAIN
                                     let mut items = Vec::new();
-                                    for idx in range {
-                                        let val: &String = &songs_list[idx];
-                                        let text_val =
-                                            Box::leak(val.clone().into_boxed_str()) as &'static str;
 
+                                    for idx in range {
+                                        let song: &String = &songs_list[idx];
+                                        let text_val: &'static str =
+                                            Box::leak(song.clone().into_boxed_str());
+
+                                        let audio_manager = audio_manager.clone();
                                         items.push(
                                             div()
                                                 .id(text_val)
@@ -86,12 +91,18 @@ impl Render for ListView {
                                                 .child(text_val)
                                                 .on_click(move |_, _, _| {
                                                     println!("song clicked {:?}", text_val);
+                                                    audio_manager.load(
+                                                        String::from_str(text_val)
+                                                            .expect("Unable to load the song"),
+                                                    );
+                                                    audio_manager.play();
+                                                    info!("Playing a new song {:?}!!!", text_val);
                                                 }),
                                         );
                                     }
                                     items
-                                }),
-                            )
+                                })
+                            })
                             .flex_1()
                             .size_full(),
                         )
