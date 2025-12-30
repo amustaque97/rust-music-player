@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{path::Path, sync::mpsc};
 mod audio_manager;
 mod music_list_view;
 mod play_element;
@@ -14,6 +14,11 @@ use crate::{audio_manager::AudioManager, music_list_view::ListView};
 use play_element::PlayElement;
 
 actions!(music_player, [Quit]);
+
+enum PlayerCommand {
+    Play,
+    Paused,
+}
 
 struct MusicPlayer {
     play_btn: Entity<PlayElement>,
@@ -101,9 +106,11 @@ fn main() {
     info!("Music player starting...");
     let application = Application::new();
 
+    // this is a global communication so we can control the state of the icon
+    let (tx_global, rx_global) = mpsc::channel::<PlayerCommand>();
     let audio_manager = Arc::new(AudioManager::new());
-    let element = PlayElement::new(Arc::clone(&audio_manager));
-    let mut list_view = ListView::new(Arc::clone(&audio_manager));
+    let element = PlayElement::new(Arc::clone(&audio_manager), rx_global);
+    let mut list_view = ListView::new(Arc::clone(&audio_manager), tx_global);
     list_view.load_songs();
 
     application.run(move |app| {

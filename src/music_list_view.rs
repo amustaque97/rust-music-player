@@ -1,25 +1,30 @@
-use std::{fs::read_dir, str::FromStr, sync::Arc};
+use std::{fs::read_dir, str::FromStr, sync::Arc, sync::mpsc};
 
+use crate::PlayerCommand;
+use crate::audio_manager::AudioManager;
 use gpui::{
     InteractiveElement, ParentElement, Render, StatefulInteractiveElement, Styled, div,
     prelude::FluentBuilder, rgb, uniform_list,
 };
 use log::info;
 
-use crate::audio_manager::AudioManager;
-
 type SharedAudioManager = Arc<AudioManager>;
 
 pub(crate) struct ListView {
     songs_list: Vec<String>,
     pub(crate) audio_manager: SharedAudioManager,
+    msg_sender: mpsc::Sender<PlayerCommand>,
 }
 
 impl ListView {
-    pub(crate) fn new(audio_manager: SharedAudioManager) -> Self {
+    pub(crate) fn new(
+        audio_manager: SharedAudioManager,
+        msg_sender: mpsc::Sender<PlayerCommand>,
+    ) -> Self {
         Self {
             songs_list: Vec::new(),
             audio_manager,
+            msg_sender,
         }
     }
 
@@ -41,7 +46,8 @@ impl Render for ListView {
         cx: &mut gpui::Context<Self>,
     ) -> impl gpui::IntoElement {
         let songs_list = self.songs_list.clone();
-        let audio_manager = self.audio_manager.clone(); // Option<Arc<_>>
+        let audio_manager = self.audio_manager.clone();
+        let msg_sender = self.msg_sender.clone();
 
         div()
             .bg(rgb(0xC8E5EE))
@@ -83,6 +89,7 @@ impl Render for ListView {
                                             Box::leak(song.clone().into_boxed_str());
 
                                         let audio_manager = audio_manager.clone();
+                                        let msg_sender = msg_sender.clone();
                                         items.push(
                                             div()
                                                 .id(text_val)
@@ -96,7 +103,11 @@ impl Render for ListView {
                                                             .expect("Unable to load the song"),
                                                     );
                                                     audio_manager.play();
-                                                    info!("Playing a new song {:?}!!!", text_val);
+                                                    let res = msg_sender.send(PlayerCommand::Play);
+                                                    info!(
+                                                        "Playing a new song {:?}\tcommand {:?}!!!",
+                                                        text_val, res
+                                                    );
                                                 }),
                                         );
                                     }
