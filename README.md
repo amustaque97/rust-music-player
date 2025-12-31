@@ -19,10 +19,13 @@ A simple music player application built with [GPUI](https://crates.io/crates/gpu
 
 ## Screenshots
 
-The application features a centered layout with:
+<img width="805" height="832" alt="Screenshot 2025-12-31 at 10 28 43 AM" src="https://github.com/user-attachments/assets/bc20e052-e423-4226-b635-e010e6a3c91a" />
+
+
+The application features a centred layout with:
 - Application title at the top
 - Song list in the middle (with header showing Song name, Song writer, Singer)
-- Control panel at the bottom with Seek Backward, Play/Pause, and Seek Forward buttons
+- Control panel at the bottom with Seek Backwards, Play/Pause, and Seek Forward buttons
 
 ## Prerequisites
 
