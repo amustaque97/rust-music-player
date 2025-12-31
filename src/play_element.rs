@@ -67,8 +67,6 @@ impl Render for PlayElement {
         _window: &mut gpui::Window,
         cx: &mut gpui::Context<Self>,
     ) -> impl gpui::IntoElement {
-        info!("debug value {:?}", self.is_playing);
-
         // todo(mustaq): fix and see if any other approach can be applied
         // this is blocking the main thread so let's use `try_recv()` and move on
         match self.state_reciever.try_recv() {
