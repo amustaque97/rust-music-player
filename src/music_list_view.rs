@@ -94,6 +94,7 @@ impl Render for ListView {
                                             div()
                                                 .id(text_val)
                                                 .px_2()
+                                                .text_ellipsis()
                                                 .cursor_pointer()
                                                 .child(text_val)
                                                 .on_click(move |_, _, _| {
